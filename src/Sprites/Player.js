@@ -4,7 +4,7 @@ export default class Player extends Phaser.GameObjects.Sprite {
         config.scene.physics.world.enable(this);
         config.scene.add.existing(this);
      //   this.body.setCollideWorldBounds(true);
-        this.velocity = 300;
+        this.velocity = 500;
         this.angleToMouse;
         this.anims.play('black1_gun1');
         this.depth = 100;

@@ -5,12 +5,18 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         this.setActive(false);
         this.setVisible(false);
         this.velocity = 1000;
+        this.range = 500;
+        this.start;
         this.dmg = 1;
         this.knockBack = 1;
         // console.log('Bullets', this);
     }
 
     fire (x, y, angle) {
+        this.start = {
+            x: x,
+            y: y,
+        }
         this.setActive(true);
         this.setVisible(true);
         this.setPosition(x, y);
@@ -24,16 +30,25 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         if(!this.active){
             return;
         }
-        if (this.x < this.scene.physics.world.bounds.left 
-            || this.x > this.scene.physics.world.bounds.right 
-            || this.y < this.scene.physics.world.bounds.top 
-            || this.y > this.scene.physics.world.bounds.height ) {
+        // if (this.x < this.scene.physics.world.bounds.left 
+        //     || this.x > this.scene.physics.world.bounds.right 
+        //     || this.y < this.scene.physics.world.bounds.top 
+        //     || this.y > this.scene.physics.world.bounds.height ) {
+        //     this.destroy();
+        // }
+        if (Math.sqrt(Math.pow(this.x - this.start.x, 2) + Math.pow(this.y - this.start.y, 2)) > this.range){
             this.destroy();
         }
     }
 
-    destroy () {
-        this.setActive(false);
+    hideBullet (hideOnly) {
+        // if(hideOnly){
+        //     // console.log('still active', hideOnly);
+        //   this.setActive(hideOnly);
+        // }
+        // else 
+        //   this.setActive(false);
+
         this.setVisible(false);
     }
 }
