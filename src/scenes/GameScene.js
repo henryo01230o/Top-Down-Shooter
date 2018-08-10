@@ -13,17 +13,13 @@ class GameScene extends Phaser.Scene {
         this.mouseAction;
         this.bullets;
         this.map;
-<<<<<<< HEAD
         this.spwanPoint = [
-            {
-                x: 100,
-                y: 100,
-            },
+            {x: 100, y: 100,},
+            {x: 1400, y: 1400,},
         ]
-=======
-        if (!this.gameData)
+        if (!this.gameData) {
             this.gameData = new GameData();
->>>>>>> de0c3b88abfe9815c0c4bc053f5b8859f6c38d77
+        }
     }
 
     init(config){
@@ -45,21 +41,22 @@ class GameScene extends Phaser.Scene {
     preload() {
         this.mapData = this.cache.json.get('mapData')[this.mapKey];
 
-        // 
-
         this.load.image('tds_tilesheet', this.mapData.image);
         this.load.tilemapTiledJSON('map', this.mapData.json);
         this.gameData.gameMap = this.mapData;
     }
+
     create() {
         console.log('Game scene', this)
+        this.physics.world.setBounds(0, 0, 3200, 3200);
+
         this.input.setDefaultCursor('url(assets/input/crosshair1.png)11 11, pointer');
 
         this.player = new Player({
             scene: this,
             key: 'player',
-            x: this.spwanPoint[0].x,
-            y: this.spwanPoint[0].y
+            x: this.spwanPoint[1].x,
+            y: this.spwanPoint[1].y
         });
 
         
@@ -80,16 +77,10 @@ class GameScene extends Phaser.Scene {
             // if (layer.layer.name === 'roof'){
             //     layer.alpha = 0;
             // }
-<<<<<<< HEAD
-            if(!(layer.layer.name === 'grass' ||
-            layer.layer.name === 'floor' ||
-            layer.layer.name === 'roof' )) {
-=======
             if(!(layer.layer.name === 'grass' || layer.layer.name === 'floor' || layer.layer.name === 'roof' || layer.layer.name === 'fence')) {
             // this.mapData.nonCollidableLayers.filter( layerName => {
                 // return layer.layer.name !== layerName
             // }).forEach( 
->>>>>>> de0c3b88abfe9815c0c4bc053f5b8859f6c38d77
                 this.map.setCollisionBetween(0, 10000, true, layer);
                 this.physics.add.collider(this.player, layer);
                 this.physics.add.collider(this.bullets, layer, this.hitLayer,null, this);
@@ -203,11 +194,14 @@ class GameScene extends Phaser.Scene {
             bullet.update(delta);
         });
 
+        this.zombie.update(delta)
+
         this.updateText();
     }
 
     updateText (){
-        this.text.setText('x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10));
+        this.text.setText('x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10) + '\n Enemy: x:' + Math.floor(this.zombie.x) + ' y:' + parseInt(this.zombie.y,10));
+        // this.text.setText('Enemy: x:' + Math.floor(this.zombie.x) + ' y:' + parseInt(this.zombie.y,10));
     }
 }
 export default GameScene;
