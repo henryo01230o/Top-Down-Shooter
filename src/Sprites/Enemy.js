@@ -35,10 +35,4 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         console.log('this', this)
         bullet.destroy();
     };
-
-    // killed() {
-    //     this.alive = false;
-    //     this.setActive(false);
-    //     this.setVisible(false);
-    // }
 }

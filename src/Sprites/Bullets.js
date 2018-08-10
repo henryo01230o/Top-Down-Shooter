@@ -9,7 +9,6 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         this.start;
         this.dmg = 1;
         this.knockBack = 1;
-        // console.log('Bullets', this);
     }
 
     fire (x, y, angle) {
@@ -30,25 +29,13 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         if(!this.active){
             return;
         }
-        // if (this.x < this.scene.physics.world.bounds.left 
-        //     || this.x > this.scene.physics.world.bounds.right 
-        //     || this.y < this.scene.physics.world.bounds.top 
-        //     || this.y > this.scene.physics.world.bounds.height ) {
-        //     this.destroy();
-        // }
+
         if (Math.sqrt(Math.pow(this.x - this.start.x, 2) + Math.pow(this.y - this.start.y, 2)) > this.range){
             this.destroy();
         }
     }
 
-    hideBullet (hideOnly) {
-        // if(hideOnly){
-        //     // console.log('still active', hideOnly);
-        //   this.setActive(hideOnly);
-        // }
-        // else 
-        //   this.setActive(false);
-
+    hideBullet () {
         this.setVisible(false);
     }
 }

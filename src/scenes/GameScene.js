@@ -12,6 +12,12 @@ class GameScene extends Phaser.Scene {
         this.mouseAction;
         this.bullets;
         this.map;
+        this.spwanPoint = [
+            {
+                x: 100,
+                y: 100,
+            },
+        ]
     }
 
     create() {
@@ -21,8 +27,8 @@ class GameScene extends Phaser.Scene {
         this.player = new Player({
             scene: this,
             key: 'player',
-            x: 1400,
-            y: 1400,
+            x: this.spwanPoint[0].x,
+            y: this.spwanPoint[0].y
         });
 
         
@@ -42,7 +48,9 @@ class GameScene extends Phaser.Scene {
             // if (layer.layer.name === 'roof'){
             //     layer.alpha = 0;
             // }
-            if(!(layer.layer.name === 'grass' || layer.layer.name === 'floor' || layer.layer.name === 'roof' || layer.layer.name === 'fence')) {
+            if(!(layer.layer.name === 'grass' ||
+            layer.layer.name === 'floor' ||
+            layer.layer.name === 'roof' )) {
                 this.map.setCollisionBetween(0, 10000, true, layer);
                 this.physics.add.collider(this.player, layer);
                 this.physics.add.collider(this.bullets, layer, this.hitLayer,null, this);
