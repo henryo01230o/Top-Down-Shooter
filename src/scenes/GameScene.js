@@ -1,6 +1,7 @@
 import Player from '../sprites/Player';
 import Bullets from '../sprites/Bullets';
 import Enemy from '../Sprites/Enemy';
+import GameData from '../data/GameData';
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -12,14 +13,44 @@ class GameScene extends Phaser.Scene {
         this.mouseAction;
         this.bullets;
         this.map;
+<<<<<<< HEAD
         this.spwanPoint = [
             {
                 x: 100,
                 y: 100,
             },
         ]
+=======
+        if (!this.gameData)
+            this.gameData = new GameData();
+>>>>>>> de0c3b88abfe9815c0c4bc053f5b8859f6c38d77
     }
 
+    init(config){
+        if (config.remoteJoinKey){
+            console.log('remoteJoinKey', config.remoteJoinKey);
+            // do p2p connection
+            this.hostType = 'peer';
+            // dummy
+            this.mapKey='map1';
+        }
+        else {
+            this.hostType='host';
+            this.mapKey = config.mapKey;
+        }
+        this.difficulty = config.difficulty;
+
+    }
+
+    preload() {
+        this.mapData = this.cache.json.get('mapData')[this.mapKey];
+
+        // 
+
+        this.load.image('tds_tilesheet', this.mapData.image);
+        this.load.tilemapTiledJSON('map', this.mapData.json);
+        this.gameData.gameMap = this.mapData;
+    }
     create() {
         console.log('Game scene', this)
         this.input.setDefaultCursor('url(assets/input/crosshair1.png)11 11, pointer');
@@ -38,19 +69,27 @@ class GameScene extends Phaser.Scene {
             runChildUpdate: false,
         });
 
-        this.map = this.make.tilemap({ key: 'map', tileWidth: 32, tileHeight: 32 });
+        this.map = this.make.tilemap({ key: 'map', tileWidth: this.mapData.tileWidth, tileHeight: this.mapData.tileHeight });
         var tileset = this.map.addTilesetImage('tds_tilesheet');
         console.log('map', this.map, tileset);
+
         this.layersMap = new Map();
-        for (let i = 0; i< 13; i++){
+        for (let i = 0; i< this.mapData.layers; i++){
             var layer = this.map.createDynamicLayer(i, tileset, 0,0);
             this.layersMap.set(layer.layer.name, layer);
             // if (layer.layer.name === 'roof'){
             //     layer.alpha = 0;
             // }
+<<<<<<< HEAD
             if(!(layer.layer.name === 'grass' ||
             layer.layer.name === 'floor' ||
             layer.layer.name === 'roof' )) {
+=======
+            if(!(layer.layer.name === 'grass' || layer.layer.name === 'floor' || layer.layer.name === 'roof' || layer.layer.name === 'fence')) {
+            // this.mapData.nonCollidableLayers.filter( layerName => {
+                // return layer.layer.name !== layerName
+            // }).forEach( 
+>>>>>>> de0c3b88abfe9815c0c4bc053f5b8859f6c38d77
                 this.map.setCollisionBetween(0, 10000, true, layer);
                 this.physics.add.collider(this.player, layer);
                 this.physics.add.collider(this.bullets, layer, this.hitLayer,null, this);
