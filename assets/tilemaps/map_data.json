@@ -1,0 +1,13 @@
+{
+  "map1": {
+    "image": "assets/tilemaps/tds_tilesheet.png",
+    "json": "assets/tilemaps/tds_tilemap.json",
+    "tileWidth": 32,
+    "tileHeight": 32,
+    "layers": 13,
+    "nonCollidableLayers": ["grass", "floor", "fence", "roof"],
+    "roofLayers": ["roof"]
+    
+  }
+
+}
