@@ -7,8 +7,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
     <script src="main.js"></script> -->
+    <style>
+        .footer {
+           position: fixed;
+           left: 0;
+           bottom: 0;
+           width: 100%;
+           background-color: red;
+           color: white;
+           text-align: left;
+           display: none;
+        }
+        </style>
+        
 </head>
 <body>
     
+    <script>
+        function displayJoinGameUrl(url){
+            var element = document.getElementById("joinurl");
+            element.innerText = url;
+            element.style.display = 'block';
+        }
+    </script>
+    <div id="joinurl" class="footer">
+
+    </div>
 </body>
 </html>

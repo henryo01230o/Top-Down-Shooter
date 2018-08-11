@@ -29,6 +29,8 @@
     "webpack-cli": "^3.0.1"
   },
   "dependencies": {
+    "msgpack-lite": "^0.1.26",
+    "peerjs": "^0.3.16",
     "phaser": "3.11.0",
     "phaser-animated-tiles": "^2.0.2"
   }

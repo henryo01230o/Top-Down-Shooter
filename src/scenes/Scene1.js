@@ -7,8 +7,16 @@ class Scene1 extends Phaser.Scene {
         });
     }
     preload() {
-        this.load.image('tds_tilesheet', 'assets/tilemaps/tds_tilesheet.png');
-        this.load.tilemapTiledJSON('map', 'assets/tilemaps/tds_tilemap.json');
+        const url = new URL(window.location.href);
+        const remoteJoinKey = url.searchParams.get("joinGame");
+        const mapId = url.searchParams.get('mapId');
+
+        // the following is the list of tile maps for different levels to be loaded.
+        // host player can choose different map to play the game.
+        this.load.json('mapData', 'assets/tilemaps/map_data.json');
+
+        // this.load.image('tds_tilesheet', 'assets/tilemaps/tds_tilesheet.png');
+        // this.load.tilemapTiledJSON('map', 'assets/tilemaps/tds_tilemap.json');
 
         this.load.atlas('bullets_Blue','assets/bullets_Blue.png', 'assets/bullets_Blue.json');
 
@@ -16,7 +24,12 @@ class Scene1 extends Phaser.Scene {
 
         this.load.on('complete', () => {
             loadImages(this);
-            this.scene.start('GameScene');
+            // somehow this menu scene choose the map and other data to pass to game scene
+            if (remoteJoinKey !== null){
+                this.scene.start('GameScene', {remoteJoinKey: remoteJoinKey, mapKey: mapId, difficulty: '1'});
+            }
+            else 
+                this.scene.start('GameScene', {mapKey: 'map1', difficulty: '1'});
         });
     }
 }
