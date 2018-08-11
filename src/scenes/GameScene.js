@@ -107,7 +107,7 @@ class GameScene extends Phaser.Scene {
 
             this.myConn.on('open', (id) => {
                 this.hostUrl = window.location.href + '?joinGame='+id+'&mapId='+this.mapKey;
-                window.alert('Copy this link and ask yuor friend to join your game.\n'+ this.hostUrl);
+                window.displayJoinGameUrl('Share this link to join your game:\n'+ this.hostUrl);
                 console.log('url', this.hostUrl);
             });
             this.myConn.on('connection', (conn) => {
@@ -252,7 +252,8 @@ class GameScene extends Phaser.Scene {
         }
 
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-    
+        this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+        
         this.keys = this.input.keyboard.addKeys({
             'up': Phaser.Input.Keyboard.KeyCodes.W,
             'down': Phaser.Input.Keyboard.KeyCodes.S,
@@ -364,16 +365,14 @@ class GameScene extends Phaser.Scene {
         
         Array.from(this.zombies.children.entries).forEach( zombie => zombie.update(delta));
 
-        this.zombie.update(delta)
+        // this.zombie.update(delta)
 
         this.updateText();
     }
 
     updateText (){
-        const msgUrl = (this.hostUrl)? 'url: '+ this.hostUrl: '';
         const msgPlayer  = (this.player)? 'x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10): '';
-        const msg = (msgUrl)? msgUrl + '\n' + msgPlayer : msgPlayer ;
-        this.text.setText( msg );
+        this.text.setText( msgPlayer );
         // this.text.setText('x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10) + '\n Enemy: x:' + Math.floor(this.zombie.x) + ' y:' + parseInt(this.zombie.y,10));
     }
 }
