@@ -21,7 +21,6 @@ class GameScene extends Phaser.Scene {
         ]
         if (!this.gameData) 
             this.gameData = new GameData();
-        this.preloaded = false;
 
         this.addPlayerPhysics.bind(this);
     }
@@ -173,7 +172,6 @@ class GameScene extends Phaser.Scene {
         this.load.tilemapTiledJSON('map', this.mapData.json);
         this.gameData.gameMap = this.mapData;
          
-
     }
     addMyPlayer(playerInfo){
         this.player = new Player({
