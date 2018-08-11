@@ -1,18 +1,42 @@
 export default class Player extends Phaser.GameObjects.Sprite {
-    constructor (config) {
-        super(config.scene, config.x, config.y, config.key);
-        config.scene.physics.world.enable(this);
-        config.scene.add.existing(this);
+    constructor (param) {
+        console.log(' player construct', param);
+        if (param.scene && param.key){
+            super(param.scene, param.x, param.y, param.key);
+            console.log('create as self');
+            // this is self created player
+            param.scene.physics.world.enable(this);
+            param.scene.add.existing(this);
+            this.anims.play(`${param.color}_gun1`);
+            this.pid = param.pid;
+        }
+        else {
+            console.log('create as group');
+            super(param);
+            // this is other players which passes a the scene argument
+            param.physics.world.enable(this);
+            param.add.existing(this);
+            this.setActive(false);
+            this.setVisible(false);
+        }
      //   this.body.setCollideWorldBounds(true);
         this.velocity = 500;
         this.angleToMouse;
-        this.anims.play('black1_gun1');
         this.depth = 100;
         this.fireRate = 0;
         this.nextFire = 0;
         console.log('Class Player', this)
     }
 
+    spawn(playerInfo){
+        console.log("spawn player");
+        this.setActive(true);
+        this.setVisible(true);
+        this.setPosition(playerInfo.x, playerInfo.y);
+        this.pid = playerInfo.pid;
+        this.anims.play(`${playerInfo.color}_gun1`);
+        console.log('new other player added at', this.x, this.y);
+    }
     update(keys, mouseAction, delta) {
         if (keys.left.isDown) {
             this.body.velocity.x = -this.velocity;
@@ -43,6 +67,7 @@ export default class Player extends Phaser.GameObjects.Sprite {
         }
 
         this.rotation = -this.angleToMouse;
+
 
         if (mouseAction.click && this.nextFire + this.fireRate < delta) {
             var bullet = this.scene.bullets.get(this);

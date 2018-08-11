@@ -6,7 +6,9 @@
     "tileHeight": 32,
     "layers": 13,
     "nonCollidableLayers": ["grass", "floor", "fence", "roof"],
-    "roofLayers": ["roof"]
+    "roofLayers": ["roof"],
+    "playerSpawnPoints": [{"x":1400,"y":1400}, {"x":1600, "y":1400}],
+    "enemySpawnPoints": [{"x":1280,"y":1450}, {"x":1100, "y":1400},{"x":1200, "y":1200},{"x":1400, "y":1300}]
     
   }
 
