@@ -19,8 +19,8 @@ export default class Player extends Phaser.GameObjects.Sprite {
             this.setActive(false);
             this.setVisible(false);
         }
-     //   this.body.setCollideWorldBounds(true);
-        this.velocity = 500;
+       this.body.setCollideWorldBounds(true);
+        this.velocity = 300;
         this.angleToMouse;
         this.depth = 100;
         this.fireRate = 0;
@@ -60,7 +60,8 @@ export default class Player extends Phaser.GameObjects.Sprite {
 
         const distMouse = Math.sqrt(Math.pow(mouseAction.y - this.y, 2) + Math.pow(mouseAction.x - this.x , 2));
 
-        this.angleToMouse = -Math.PI / 2 + Math.atan((mouseAction.x -this.x ) / (mouseAction.y - this.y)) + Math.atan(10 / distMouse);
+        this.angleToMouse = -Math.PI / 2 + Math.atan((mouseAction.x -this.x ) /
+            (mouseAction.y - this.y)) + Math.atan(10 / distMouse);
 
         if (mouseAction.y < this.y) {
             this.angleToMouse -= Math.PI;
