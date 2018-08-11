@@ -15,7 +15,11 @@ class GameScene extends Phaser.Scene {
         this.mouseAction;
         this.bullets;
         this.map;
-        if (!this.gameData)
+        this.spwanPoint = [
+            {x: 100, y: 100,},
+            {x: 1400, y: 1400,},
+        ]
+        if (!this.gameData) 
             this.gameData = new GameData();
         this.preloaded = false;
 
@@ -360,6 +364,8 @@ class GameScene extends Phaser.Scene {
         
         Array.from(this.zombies.children.entries).forEach( zombie => zombie.update(delta));
 
+        this.zombie.update(delta)
+
         this.updateText();
     }
 
@@ -368,6 +374,7 @@ class GameScene extends Phaser.Scene {
         const msgPlayer  = (this.player)? 'x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10): '';
         const msg = (msgUrl)? msgUrl + '\n' + msgPlayer : msgPlayer ;
         this.text.setText( msg );
+        // this.text.setText('x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10) + '\n Enemy: x:' + Math.floor(this.zombie.x) + ' y:' + parseInt(this.zombie.y,10));
     }
 }
 export default GameScene;

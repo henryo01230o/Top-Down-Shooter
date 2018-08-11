@@ -8,6 +8,7 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         scene.add.existing(this);
         this.setActive(false);
         this.setVisible(false);
+        this.body.setCollideWorldBounds(true);
         this.bullets = this.scene.bullets;
         this.hit.bind(this);
         this.anims.play('zombie_stand');
@@ -74,10 +75,4 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         console.log('this', this)
         bullet.destroy();
     };
-
-    // killed() {
-    //     this.alive = false;
-    //     this.setActive(false);
-    //     this.setVisible(false);
-    // }
 }
