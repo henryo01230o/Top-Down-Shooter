@@ -1,3 +1,5 @@
+import msgpack from 'msgpack-lite';
+
 export default class Player extends Phaser.GameObjects.Sprite {
     constructor (param) {
         console.log(' player construct', param);
@@ -9,6 +11,7 @@ export default class Player extends Phaser.GameObjects.Sprite {
             param.scene.add.existing(this);
             this.anims.play(`${param.color}_gun1`);
             this.pid = param.pid;
+            this.color= param.color;
         }
         else {
             console.log('create as group');
@@ -34,6 +37,7 @@ export default class Player extends Phaser.GameObjects.Sprite {
         this.setVisible(true);
         this.setPosition(playerInfo.x, playerInfo.y);
         this.pid = playerInfo.pid;
+        this.color = playerInfo.color;
         this.anims.play(`${playerInfo.color}_gun1`);
         console.log('new other player added at', this.x, this.y);
     }
@@ -69,14 +73,33 @@ export default class Player extends Phaser.GameObjects.Sprite {
 
         this.rotation = -this.angleToMouse;
 
+        if (this.scene.hostConn){
+            if (this.scene.peerType === 'guest' ) {
+                this.scene.hostConn.send(msgpack.encode({action:'move', data:{x: this.x, y: this.y, rotation: this.rotation, pid: this.pid}}));
+            }
+        }
+        else if (this.scene.myConn){
+            if (this.scene.peerType === 'host') {
+                Object.keys(this.scene.myConn.connections).forEach( k => {
+                    // console.log('send move', k, this.scene.myConn.connections);
+                    this.scene.myConn.connections[k][0].send(msgpack.encode({action:'move', data:{x: this.x, y: this.y, rotation: this.rotation, pid: this.pid}}));
+                });
+            }
+        }
 
         if (mouseAction.click && this.nextFire + this.fireRate < delta) {
-            var bullet = this.scene.bullets.get(this);
-            bullet.fire(
-                this.x + 10 * Math.cos(this.rotation+Math.PI / 2),
-                this.y + 10 * Math.sin(this.rotation+Math.PI / 2),
-                this.rotation + 0.1 * Math.random() - 0.05,
-            );
+            if (this.scene.peerType === 'host'){
+                var bullet = this.scene.bullets.get(this);
+                bullet.fire(
+                    this.x + 10 * Math.cos(this.rotation+Math.PI / 2),
+                    this.y + 10 * Math.sin(this.rotation+Math.PI / 2),
+                    this.rotation + 0.1 * Math.random() - 0.05,
+                    this.pid
+                );
+            }
+            else {
+                this.scene.hostConn.send(msgpack.encode({action:'fired', data:{x:this.x, y: this.y, rotation: this.rotation, pid: this.pid}}));
+            }
             this.nextFire = delta;
         }
     }

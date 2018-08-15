@@ -11,7 +11,7 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         this.knockBack = 1;
     }
 
-    fire (x, y, angle) {
+    fire (x, y, angle, pid) {
         this.start = {
             x: x,
             y: y,
@@ -19,6 +19,7 @@ export default class Bullets extends Phaser.GameObjects.Sprite {
         this.setActive(true);
         this.setVisible(true);
         this.setPosition(x, y);
+        this.pid = pid;
         this.rotation = angle + Math.PI / 2;
         this.body.velocity.x = this.velocity * Math.cos(angle);
         this.body.velocity.y = this.velocity * Math.sin(angle);

@@ -22,7 +22,7 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         //     this.scene.physics.world.overlap(this, bullet, this.hit(bullet))
         // });
         // this.scene.bullets.world.add.overlap(this)
-        console.log('Class Enemy', this)
+        // console.log('Class Enemy', this)
     }
 
     spawn(){
@@ -72,7 +72,7 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         if (this.health <= 0) {
             this.destroy()
         }
-        console.log('this', this)
+        // console.log('this', this)
         bullet.destroy();
     };
 }
