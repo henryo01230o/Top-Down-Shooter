@@ -27,7 +27,7 @@ class GameScene extends Phaser.Scene {
 
     init(config){
         this.myConn = new Peer();
-        this.others = {};
+        // this.others = {};    // to replace peer.connections
         console.log(this.myConn);
 
         this.setupPeer.bind(this);
@@ -51,7 +51,7 @@ class GameScene extends Phaser.Scene {
             // get data from host
             this.hostConn = this.myConn.connect(remoteJoinKey, {serialization: 'none'});
             this.hostConn.on('open', () => {
-                const encoded = msgpack.encode({action: 'getMap'});
+                const encoded = msgpack.encode({action: 'joinGame'});
                 const unencoded = msgpack.decode(encoded);
                 console.log('send host', encoded, unencoded);
                 this.hostConn.send(encoded);
@@ -60,28 +60,57 @@ class GameScene extends Phaser.Scene {
                 this.hostConn.on('data', (data) => {
                     // console.log('receive host:', data);
                     const decoded = msgpack.decode(new Uint8Array(data));
-                    console.log('decoded host:', decoded);
+                    // console.log('decoded host:', decoded);
                     switch (decoded.action){
-                        case 'sendMap':
+                        case 'getMap':
                             this.mapKey = decoded.data;
                             console.log('get mapKey', this.mapKey);
                             break;
-                        case 'addPlayer':
-                            console.log('get addPlayer', decoded.data, this.myConn.id);
-                            if (decoded.data.pid === this.myConn.id){
-                                // for self
-                                this.addMyPlayer({
-                                    key: 'player',
-                                    pid: decoded.data.pid,
-                                    x: decoded.data.x,
-                                    y: decoded.data.y,
-                                    color: decoded.data.color,
-                                })
-                            }
-                        case 'update':
-                            // update game data
+                        case 'joinGame':
+                            console.log('joinGame', decoded.data, this.myConn.id);
+                            decoded.data.forEach( player => {
+                                if (player.pid === this.myConn.id && (this.player === undefined || this.player === null) ){
+                                    // for self
+                                    console.log('add me');
+                                    this.addMyPlayer({
+                                        key: 'player',
+                                        pid: player.pid,
+                                        x: player.x,
+                                        y: player.y,
+                                        color: player.color,
+                                    })
+                                }
+                                else if ( !this.otherPlayers.children.entries.find( op => op.pid === player.pid) ) {
+                                    // add other
+                                    console.log('add other',player.pid, player.x, player.y, player.color);
+                                    this.addOtherPlayer(player.pid, player.x, player.y, player.color);
+                                }
+                            });
                             break;
-                        
+                        case 'addPlayer':
+                            const newPlayerInfo = decoded.data;
+                            if ( !this.otherPlayers.children.entries.find( op => op.pid === newPlayerInfo.pid) ) {
+                                // add other
+                                this.addOtherPlayer(newPlayerInfo.pid, newPlayerInfo.x, newPlayerInfo.y, newPlayerInfo.color);
+                            }
+                            break;
+                        case 'move':
+                            // update move data
+                            const player = this.otherPlayers.children.entries.find(op => op.pid === decoded.data.pid);
+                            // console.log('move player', player);
+                            player.setPosition(decoded.data.x, decoded.data.y);
+                            player.setRotation(decoded.data.rotation);
+                            break;
+                        case 'fire':
+                            const bullet = this.bullets.get(this);
+                            bullet.fire(
+                                decoded.data.x + 10 * Math.cos(decoded.data.rotation+Math.PI / 2),
+                                decoded.data.y + 10 * Math.sin(decoded.data.rotation+Math.PI / 2),
+                                decoded.data.rotation + 0.1 * Math.random() - 0.05,
+                                decoded.data.pid
+                            );
+            
+                            break;
                         default:
 
                     }
@@ -108,6 +137,14 @@ class GameScene extends Phaser.Scene {
                 this.hostUrl = window.location.href + '?joinGame='+id+'&mapId='+this.mapKey;
                 window.displayJoinGameUrl('Share this link to join your game:\n'+ this.hostUrl);
                 console.log('url', this.hostUrl);
+                this.addMyPlayer({
+                    key: 'player',
+                    pid: this.myConn.id,
+                    x: 1400,
+                    y: 1400,
+                    color: 'black1',
+                });
+        
             });
             this.myConn.on('connection', (conn) => {
                 console.log('client connected', conn.peer);
@@ -128,15 +165,50 @@ class GameScene extends Phaser.Scene {
 
                     // console.log('client data', new Uint8Array(data));
                     const decoded = msgpack.decode(new Uint8Array(data));
-                    console.log('decoded client', decoded);
+                    // console.log('decoded client', decoded);
                     // switch actions
                     switch (decoded.action){
-                        case 'getMap':
-                            conn.send(msgpack.encode({action:'sendMap', data:this.mapKey}));
-                            // generate new player record
-                            const newPlayerInfo = this.createNewPlayer(conn.peer);
-                            console.log('send addPlayer', newPlayerInfo);
-                            conn.send(msgpack.encode({action: 'addPlayer', data:newPlayerInfo}));
+                        case 'joinGame':
+                            // conn.send(msgpack.encode({action:'getMap', data:this.mapKey}));
+                            if (!this.otherPlayers.children.entries.find(op => op.pid === conn.peer)){
+                                // generate new player record
+                                const newPlayerInfo = this.addOtherPlayer(conn.peer);
+                                
+                                //broadcast everyone new player joined
+                                //console.log('connections',this.myConn.connections); // {key:[1]}
+                                Object.keys(this.myConn.connections).forEach( k => 
+                                    this.myConn.connections[k][0].send(msgpack.encode({action: 'addPlyaer', data: newPlayerInfo }))
+                                );
+                            }
+                            const otherPlayersInfo = this.otherPlayers.children.entries.map( op => {
+                                return { pid: op.pid, x: op.x, y:op.y, color: op.color };
+                            });
+                            const allPlayerInfo = [...otherPlayersInfo, {pid:this.myConn.id, x: this.player.x, y: this.player.y, color: "black1"}];
+                            conn.send(msgpack.encode({action: 'joinGame', data:allPlayerInfo}));
+                            break;
+                        case 'move':
+                            // update movement data
+                            Object.keys(this.myConn.connections)
+                                .forEach( k => {
+                                    if (k !== conn.peer){
+                                        this.myConn.connections[k][0].send(msgpack.encode({action: 'move', data: decoded.data }));
+                                    }
+                                });
+                            // update other player
+                            const otherPlayer = this.otherPlayers.children.entries.find( op => {
+                                // console.log('op', op, data, op.pid === data.pid);
+                                return op.pid === decoded.data.pid
+                            });
+                            // console.log('otherPlayer', otherPlayer, this.otherPlayers);
+                            otherPlayer.setPosition(decoded.data.x, decoded.data.y);
+                            otherPlayer.setRotation(decoded.data.rotation);
+                            break;
+                        case 'fire':
+                            // fire event is only rendered in server, only bullet positions are sent to players
+                            this.bullets.fire(decoded.data.x, decoded.data.y, decoded.data.rotation, decoded.data.pid);
+                            Object.keys(this.myConn.connections).forEach( k => 
+                                this.myConn.connections[k][0].send(msgpack.encode({action:'fire', data: decoded.data}))
+                            );
                             break;
 
                         default:
@@ -148,21 +220,27 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createNewPlayer(connId){
+    addOtherPlayer(connId, x, y, color){
         const playerSpawnPoints = this.mapData.playerSpawnPoints;
 
         const spawnAt = Math.floor(Math.random() * playerSpawnPoints.length);
-        const newPlayerInfo = {
+        const spawnColor = Math.floor(Math.random() * 3);
+        let newPlayerInfo = {
             pid: connId, 
-            x: playerSpawnPoints[spawnAt].x, 
-            y: playerSpawnPoints[spawnAt].y, 
-            color: 'green1'         // can randomize it
-        };   
+            x: x,
+            y: y,
+            color: color,
+        };
+        if (x === undefined || x === null){
+            newPlayerInfo.x = playerSpawnPoints[spawnAt].x;
+            newPlayerInfo.y = playerSpawnPoints[spawnAt].y;
+            newPlayerInfo.color= ['green1','blue1','yellow'][spawnColor]; 
+        }
 
         const newPlayer = this.otherPlayers.get(this);
         newPlayer.spawn(newPlayerInfo);
 
-        this.addPlayerPhysics(newPlayer);
+        // this.addPlayerPhysics(newPlayer);
 
         return newPlayerInfo;
     }
@@ -185,8 +263,8 @@ class GameScene extends Phaser.Scene {
 
         this.addPlayerPhysics(this.player);
         this.cameras.main.startFollow(this.player);
-
     }
+
     addPlayerPhysics(player){
         this.layersMap.forEach((layer, name)=>{
             if (!this.mapData.nonCollidableLayers.includes(name)){
@@ -238,15 +316,6 @@ class GameScene extends Phaser.Scene {
                 // this.physics.add.overlap(this.player, layer, this.setRoofDisplay, null, this);
                 this.roofLayers.push(layer);
             }
-        }
-        if (this.peerType === 'host'){
-            this.addMyPlayer({
-                key: 'player',
-                pid: this.myConn.id,
-                x: 1400,
-                y: 1400,
-                color: 'black1',
-            });
         }
 
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -346,6 +415,20 @@ class GameScene extends Phaser.Scene {
                     zombie.setVisible(true);
                 }
             });
+            this.otherPlayers.children.entries.forEach( op => {
+                const opTile = roofLayer.getTileAtWorldXY(op.x, op.y);
+                if (opTile ){
+                    if(!tile){
+                        op.setVisible(false);
+                    }
+                    else {
+                        op.setVisible(true);
+                    }
+                }
+                else{
+                    op.setVisible(true);
+                }
+            })
         });
     }
     update(delta) {
@@ -357,9 +440,16 @@ class GameScene extends Phaser.Scene {
         
         if (this.player)
             this.player.update(this.keys, this.mouseAction, delta);
+        
+        let bulletsInfo = [];
         Array.from(this.bullets.children.entries).forEach( bullet => {
             bullet.update(delta);
+            bulletsInfo.push({x:bullet.x, y: bullet.y, rotation: bullet.rotation, pid: bullet.pid});
         });
+        // send bullet info to all after update
+        // Object.keys(this.myConn.connections).forEach(k => {
+        //     this.myConn.connections[k][0].send(msgpack.encode({action:'updateBullets', data: bulletsInfo}));
+        // })
         
         Array.from(this.zombies.children.entries).forEach( zombie => zombie.update(delta));
 
