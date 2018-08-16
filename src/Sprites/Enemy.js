@@ -1,31 +1,47 @@
 import Bullets from '../Sprites/Bullets';
 
 export default class Enemy extends Phaser.GameObjects.Sprite {
-    constructor(config) {
-        super(config.scene, config.x, config.y, config.key);    
-        config.scene.physics.world.enable(this);
-        config.scene.add.existing(this);
+    constructor(scene) {
+        // super(config.scene, config.x, config.y, config.key);  
+        super(scene);  
+        scene.physics.world.enable(this);
+        scene.add.existing(this);
+        this.setActive(false);
+        this.setVisible(false);
         this.body.setCollideWorldBounds(true);
-        this.health = 100;
-        this.alive = true;
         this.bullets = this.scene.bullets;
         this.hit.bind(this);
         this.anims.play('zombie_stand');
-        this.velocity = 250;
-        this.wake = false;
+        this.velocity = 25;
         this.wakeDistance = 300;
+        this.scene.physics.add.overlap(this, this.scene.bullets, this.hit, null, this);
 
-        console.log('bullets',this.scene.bullets);
+        // console.log('bullets',this.scene.bullets);
         // Array.from(this.scene.bullets.children.entries).forEach( bullet => {
         //     console.log('check bullet', bullet)
         //     this.scene.physics.world.overlap(this, bullet, this.hit(bullet))
         // });
         // this.scene.bullets.world.add.overlap(this)
-        console.log('Class Enemy', this)
+        // console.log('Class Enemy', this)
+    }
+
+    spawn(){
+        this.health = 100;
+        this.alive = true;
+        this.wake = false;
+        const spawnPoints = this.scene.mapData.enemySpawnPoints;
+        const spawnAt = Math.floor(Math.random() * spawnPoints.length);
+        // console.log('spawn', spawnAt, spawnPoints)
+        this.rotation = Math.random() * Math.PI * 2;
+        this.setActive(true);
+        this.setVisible(true);
+        this.setPosition(spawnPoints[spawnAt].x, spawnPoints[spawnAt].y);
     }
 
     update(delta) {
-        this.followTarget({x: this.scene.player.x, y: this.scene.player.y})
+        // TODO change the player to players group
+        if (this.scene.player)
+            this.followTarget({x: this.scene.player.x, y: this.scene.player.y})
         if (!(this.body.velocity.x === 0 || this.body.velocity.y === 0)) {
             this.anims.play('zombie_walk')
         }
@@ -56,7 +72,7 @@ export default class Enemy extends Phaser.GameObjects.Sprite {
         if (this.health <= 0) {
             this.destroy()
         }
-        console.log('this', this)
+        // console.log('this', this)
         bullet.destroy();
     };
 }

@@ -9,6 +9,7 @@ class Scene1 extends Phaser.Scene {
     preload() {
         const url = new URL(window.location.href);
         const remoteJoinKey = url.searchParams.get("joinGame");
+        const mapId = url.searchParams.get('mapId');
 
         // the following is the list of tile maps for different levels to be loaded.
         // host player can choose different map to play the game.
@@ -25,7 +26,7 @@ class Scene1 extends Phaser.Scene {
             loadImages(this);
             // somehow this menu scene choose the map and other data to pass to game scene
             if (remoteJoinKey !== null){
-                this.scene.start('GameScene', {remoteJoinKey: remoteJoinKey, difficulty: '1'});
+                this.scene.start('GameScene', {remoteJoinKey: remoteJoinKey, mapKey: mapId, difficulty: '1'});
             }
             else 
                 this.scene.start('GameScene', {mapKey: 'map1', difficulty: '1'});
