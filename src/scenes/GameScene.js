@@ -68,7 +68,7 @@ class GameScene extends Phaser.Scene {
                             break;
                         case 'joinGame':
                             console.log('joinGame', decoded.data, this.myConn.id);
-                            decoded.data.forEach( player => {
+                            decoded.data.players.forEach( player => {
                                 if (player.pid === this.myConn.id && (this.player === undefined || this.player === null) ){
                                     // for self
                                     console.log('add me');
@@ -86,12 +86,26 @@ class GameScene extends Phaser.Scene {
                                     this.addOtherPlayer(player.pid, player.x, player.y, player.color);
                                 }
                             });
+                            decoded.data.zombies.forEach( zombie => {
+                                const newbie = this.zombies.get(this);
+                                newbie.spawn(newbieInfo.id, newbieInfo.x, newbieInfo.y, newbieInfo.rotation);
+                            });
                             break;
                         case 'addPlayer':
                             const newPlayerInfo = decoded.data;
                             if ( !this.otherPlayers.children.entries.find( op => op.pid === newPlayerInfo.pid) ) {
                                 // add other
                                 this.addOtherPlayer(newPlayerInfo.pid, newPlayerInfo.x, newPlayerInfo.y, newPlayerInfo.color);
+                            }
+                            break;
+                        case 'newbie':
+                            // spawn new zombie
+                            const newbieInfo = decoded.data;
+                            if ( !this.zombies.children.entries.find( z => z.id === newbieInfo.id) ) {
+                                // add new zombie
+                                const newbie = this.zombies.get(this);
+                                newbie.spawn(newbieInfo.id, newbieInfo.x, newbieInfo.y, newbieInfo.rotation);
+                                // console.log('spawn as guest zombie', newbie);
                             }
                             break;
                         case 'move':
@@ -101,13 +115,63 @@ class GameScene extends Phaser.Scene {
                             player.setPosition(decoded.data.x, decoded.data.y);
                             player.setRotation(decoded.data.rotation);
                             break;
+                        case 'updateObjects':
+                            const zombiesData = decoded.data.zombies;
+                            if (zombiesData !== undefined && zombiesData.length > 0){
+                                // console.log('guest get zombiedata', zombiesData);
+                                this.zombies.children.entries.forEach( z => {
+                                    const zombieData = zombiesData.find( zd => zd.id === z.id);
+                                    if (zombieData){
+                                        z.setPosition(zombieData.x, zombieData.y);
+                                        z.rotation = zombieData.rotation;
+                                    }
+                                    else {
+                                        // zombie killed
+                                        z.destroy();
+                                    }
+                                })
+                            }
+                            // update bullets
+                            const bulletsData = decoded.data.bullets;
+                            if (bulletsData !== undefined && bulletData !== null){
+                                this.bullets.children.entries.forEach( b => {
+                                    const bulletData = bulletsData.find( bd => bd.id === b.id && bd.pid === b.pid);
+                                    if (bulletData){
+                                        b.setPosition(bulletData.x, bulletData.y);
+                                        b.rotation = bulletData.rotation;
+                                    }
+                                    else {
+                                        // no matching bullet, destroy
+                                        b.destroy();
+                                    }
+                                })
+                            }
+                            // update players info
+                            const playersData = decoded.data.players;
+                            playersData.forEach( pd => {
+                                if (pd.pid === this.player.pid){
+                                    // update self
+                                    this.player.health = pd.health;
+                                    this.player.score = pd.score;
+                                    // may add other attributes in future
+                                }
+                                else {
+                                    const player = this.otherPlayers.children.entries.find( p => p.pid === pd.pid);
+                                    player.health = pd.health;
+                                    player.score = pd.score;
+                                }
+                            })
+
+                            break;
                         case 'fire':
                             const bullet = this.bullets.get(this);
                             bullet.fire(
                                 decoded.data.x + 10 * Math.cos(decoded.data.rotation+Math.PI / 2),
                                 decoded.data.y + 10 * Math.sin(decoded.data.rotation+Math.PI / 2),
                                 decoded.data.rotation + 0.1 * Math.random() - 0.05,
-                                decoded.data.pid
+                                decoded.data.pid,
+                                decoded.data.dmg,
+                                decoded.data.id
                             );
             
                             break;
@@ -175,7 +239,6 @@ class GameScene extends Phaser.Scene {
                                 const newPlayerInfo = this.addOtherPlayer(conn.peer);
                                 
                                 //broadcast everyone new player joined
-                                //console.log('connections',this.myConn.connections); // {key:[1]}
                                 Object.keys(this.myConn.connections).forEach( k => 
                                     this.myConn.connections[k][0].send(msgpack.encode({action: 'addPlyaer', data: newPlayerInfo }))
                                 );
@@ -184,7 +247,8 @@ class GameScene extends Phaser.Scene {
                                 return { pid: op.pid, x: op.x, y:op.y, color: op.color };
                             });
                             const allPlayerInfo = [...otherPlayersInfo, {pid:this.myConn.id, x: this.player.x, y: this.player.y, color: "black1"}];
-                            conn.send(msgpack.encode({action: 'joinGame', data:allPlayerInfo}));
+                            const allZombies = this.zombies.children.entries.map( z => {return {id:z.id, x:z.x, y:z.y, rotation: z.rotation}});
+                            conn.send(msgpack.encode({action: 'joinGame', data:{ players:allPlayerInfo, zombies: allZombies}}));
                             break;
                         case 'move':
                             // update movement data
@@ -205,7 +269,8 @@ class GameScene extends Phaser.Scene {
                             break;
                         case 'fire':
                             // fire event is only rendered in server, only bullet positions are sent to players
-                            this.bullets.fire(decoded.data.x, decoded.data.y, decoded.data.rotation, decoded.data.pid);
+                            const bullet = this.bullets.get(this);
+                            bullet.fire(decoded.data.x, decoded.data.y, decoded.data.rotation, decoded.data.pid, decoded.data.dmg, decoded.data.id);
                             Object.keys(this.myConn.connections).forEach( k => 
                                 this.myConn.connections[k][0].send(msgpack.encode({action:'fire', data: decoded.data}))
                             );
@@ -241,7 +306,7 @@ class GameScene extends Phaser.Scene {
         newPlayer.spawn(newPlayerInfo);
 
         // this.addPlayerPhysics(newPlayer);
-
+        this.addMiniIcon(this.icons, newPlayerInfo);
         return newPlayerInfo;
     }
     preload() {
@@ -263,6 +328,19 @@ class GameScene extends Phaser.Scene {
 
         this.addPlayerPhysics(this.player);
         this.cameras.main.startFollow(this.player);
+
+        this.addMiniIcon(this.icons, playerInfo);
+    }
+
+    addMiniIcon(icons, playerInfo){
+            // add mini player icons at hud
+            const padding = 5;
+            const iconHeight = 20;
+            const pos = Object.keys(icons).length;
+            const icon = this.add.sprite( 16, 20 + pos * (padding + iconHeight),`${playerInfo.color}_stand`);
+            icon.anims.play(`${playerInfo.color}_stand`);
+            icon.setScale(0.5, 0.5);
+            icons[playerInfo.pid] = icon;        
     }
 
     addPlayerPhysics(player){
@@ -279,6 +357,7 @@ class GameScene extends Phaser.Scene {
 
     }
     create() {
+        this.icons ={};
         this.addMyPlayer.bind(this);
         
         this.input.setDefaultCursor('url(assets/input/crosshair1.png)11 11, pointer');
@@ -337,6 +416,7 @@ class GameScene extends Phaser.Scene {
             fill: '#ffffff'
         });
         this.text.setScrollFactor(0);
+        this.text.z = 10000;
     }
 
     spawnZombie(){
@@ -345,21 +425,29 @@ class GameScene extends Phaser.Scene {
             maxSize: 100,
             runChildUpdate: false,
         });
-
-        setInterval(() => {
-            if (this.zombies.children.entries.length >  100)
-                return;
-            const newbie = this.zombies.get(this);
-            newbie.spawn();
-        }, 5000);
-        // this.zombie = new Enemy({
-        //     scene: this,
-        //     key: 'zombie',
-        //     x: 1280,
-        //     y: 1456
-        // })
-
-        // this.physics.add.overlap(this.zombie, this.bullets, this.zombie.hit, null, this.zombie)
+        this.zombieSeq = 0;
+        this.bulletSeq = 0;
+        if (this.peerType === 'host'){
+            setInterval(() => {
+                if (this.zombies.children.entries.length >  100)
+                    return;
+                const newbie = this.zombies.get(this);
+                newbie.spawn();
+                // console.log('newbie', newbie);
+                const payload = {
+                    action:'newbie', 
+                    data:{
+                        id: newbie.id, 
+                        x:newbie.x, 
+                        y: newbie.y, 
+                        rotation: newbie.rotation
+                    }
+                };
+                Object.keys(this.myConn.connections).forEach( k => {
+                    this.myConn.connections[k][0].send(msgpack.encode(payload));
+                })
+            }, 5000);
+        }
 
     }
     hitLayer(obj1, obj2){
@@ -432,6 +520,8 @@ class GameScene extends Phaser.Scene {
         });
     }
     update(delta) {
+        if (this.player === undefined )
+            return;
         this.mouseAction = {
             x: this.input.mousePointer.x + this.cameras.main.scrollX,
             y: this.input.mousePointer.y + this.cameras.main.scrollY,   
@@ -444,23 +534,49 @@ class GameScene extends Phaser.Scene {
         let bulletsInfo = [];
         Array.from(this.bullets.children.entries).forEach( bullet => {
             bullet.update(delta);
-            bulletsInfo.push({x:bullet.x, y: bullet.y, rotation: bullet.rotation, pid: bullet.pid});
+            bulletsInfo.push({x:bullet.x, y: bullet.y, rotation: bullet.rotation, pid: bullet.pid, dmg: bullet.dmg});
         });
         // send bullet info to all after update
         // Object.keys(this.myConn.connections).forEach(k => {
         //     this.myConn.connections[k][0].send(msgpack.encode({action:'updateBullets', data: bulletsInfo}));
         // })
-        
+        const playersInfo = [{pid: this.player.pid, health: this.player.health, score: this.player.score}];
+        this.otherPlayers.children.entries.forEach( op => {
+            playersInfo.push({pid: op.pid, health: op.health, score: op.score});
+        })
         Array.from(this.zombies.children.entries).forEach( zombie => zombie.update(delta));
-
-        // this.zombie.update(delta)
+        if (this.peerType === 'host'){
+            const zombiesData = this.zombies.children.entries.map( z => {
+                return {id:z.id, x:z.x, y:z.y, rotation: z.rotation, health: z.health};
+            });
+            const payload = {
+                action: 'updateObjects',
+                data: {
+                    zombies: zombiesData,
+                    // bullets - since overlap is handled by host, only needed to destroy
+                    // bullets: bulletInfo,
+                    players: playersInfo
+                }
+            };
+            // console.log('updateObjects', payload);
+            Object.keys(this.myConn.connections).forEach(k => {
+                this.myConn.connections[k][0].send(msgpack.encode(payload));
+            })
+        }
+        
 
         this.updateText();
     }
 
     updateText (){
-        const msgPlayer  = (this.player)? 'x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10): '';
-        this.text.setText( msgPlayer );
+        const msgPlayer  = (this.player)? this.player.color + ': health: ' + this.player.health + ' score: ' + this.player.score + ' x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10): '';
+        const msgOtherPlayers = this.otherPlayers.children.entries.map( op => {
+            return op.color + ': health: ' + op.health + ' score: ' + op.score + ' x:' + Math.floor(op.x) + ' y:' + parseInt(op.y,10)
+        }).reduce((msgOpLines, opLine) => {
+            return msgOpLines + '\n' + opLine;
+        }, '');
+
+        this.text.setText( msgPlayer + '\n' + msgOtherPlayers);
         // this.text.setText('x:' + Math.floor(this.player.x) + ' y:' + parseInt(this.player.y,10) + '\n Enemy: x:' + Math.floor(this.zombie.x) + ' y:' + parseInt(this.zombie.y,10));
     }
 }

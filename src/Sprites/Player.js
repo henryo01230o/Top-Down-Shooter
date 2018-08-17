@@ -1,5 +1,28 @@
 import msgpack from 'msgpack-lite';
 
+// can move the following setting to config setting json
+const GunType = {
+    gun1: {
+        // hand gun
+        fireRate: 500,
+        dmg: 20,
+        magazine: 6,
+        reload: 1000,
+    },
+    gun2: {
+        fireRate: 50,
+        dmg: 2,
+        magazine: 30,
+        reload: 1000,
+    },
+    gun3: {
+        fireRate: 1000,
+        dmg: 100,
+        magazine: 2,
+        reload: 3000,
+    },
+};
+
 export default class Player extends Phaser.GameObjects.Sprite {
     constructor (param) {
         console.log(' player construct', param);
@@ -9,7 +32,11 @@ export default class Player extends Phaser.GameObjects.Sprite {
             // this is self created player
             param.scene.physics.world.enable(this);
             param.scene.add.existing(this);
-            this.anims.play(`${param.color}_gun1`);
+            this.gunType = 'gun1';  // can be parameterized or set null for unarmed player
+            if (this.gunType)
+                this.anims.play(`${param.color}_${this.gunType}`);
+            else 
+                this.anims.play(`${param.color}_stand`);
             this.pid = param.pid;
             this.color= param.color;
         }
@@ -26,8 +53,11 @@ export default class Player extends Phaser.GameObjects.Sprite {
         this.velocity = 300;
         this.angleToMouse;
         this.depth = 100;
-        this.fireRate = 0;
+        if (this.gunType) 
+            this.fireRate = GunType[this.gunType].fireRate;
         this.nextFire = 0;
+        this.score = 0;
+        this.health = 100;
         console.log('Class Player', this)
     }
 
@@ -38,7 +68,13 @@ export default class Player extends Phaser.GameObjects.Sprite {
         this.setPosition(playerInfo.x, playerInfo.y);
         this.pid = playerInfo.pid;
         this.color = playerInfo.color;
-        this.anims.play(`${playerInfo.color}_gun1`);
+        this.gunType = 'gun1';  // can be parameterized or set null for unarmed player
+        if (this.gunType){
+            this.anims.play(`${playerInfo.color}_${this.gunType}`);
+            this.fireRate = GunType[this.gunType].fireRate;
+        }
+        else 
+            this.anims.play(`${playerInfo.color}_stand`);
         console.log('new other player added at', this.x, this.y);
     }
     update(keys, mouseAction, delta) {
@@ -79,7 +115,7 @@ export default class Player extends Phaser.GameObjects.Sprite {
             }
         }
         else if (this.scene.myConn){
-            if (this.scene.peerType === 'host') {
+            if (this.scene.peerType === 'host' ) {
                 Object.keys(this.scene.myConn.connections).forEach( k => {
                     // console.log('send move', k, this.scene.myConn.connections);
                     this.scene.myConn.connections[k][0].send(msgpack.encode({action:'move', data:{x: this.x, y: this.y, rotation: this.rotation, pid: this.pid}}));
@@ -94,11 +130,23 @@ export default class Player extends Phaser.GameObjects.Sprite {
                     this.x + 10 * Math.cos(this.rotation+Math.PI / 2),
                     this.y + 10 * Math.sin(this.rotation+Math.PI / 2),
                     this.rotation + 0.1 * Math.random() - 0.05,
-                    this.pid
+                    this.pid,
+                    GunType[this.gunType].dmg,
+                    this.scene.bulletSeq++
                 );
             }
             else {
-                this.scene.hostConn.send(msgpack.encode({action:'fired', data:{x:this.x, y: this.y, rotation: this.rotation, pid: this.pid}}));
+                this.scene.hostConn.send(msgpack.encode({
+                    action:'fire', 
+                    data:{
+                        x:this.x, 
+                        y: this.y, 
+                        rotation: this.rotation, 
+                        pid: this.pid, 
+                        dmg: GunType[this.gunType].dmg,
+                        id: this.scene.bulletSeq++
+                    }
+                }));
             }
             this.nextFire = delta;
         }
